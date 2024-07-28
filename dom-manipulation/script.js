@@ -1,16 +1,20 @@
 let quotes = []; // Array to store quotes
 
-// Simulated server interaction with mock data
-const mockServerData = [
-  { text: "Mock quote 1 from server", category: "Mock Category 1" },
-  { text: "Mock quote 2 from server", category: "Mock Category 2" }
-];
-
 // Function to fetch quotes from the server using a mock API
-function fetchQuotesFromServer() {
-  quotes = mockServerData.slice(); // Update local data with server data
-  console.log("Data fetched from server:", quotes);
-  showRandomQuote();
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts');
+    if (!response.ok) {
+      throw new Error('Failed to fetch data from the server');
+    }
+
+    const data = await response.json();
+    quotes = data.map(item => ({ text: item.title, category: "Mock Category" }));
+    console.log("Data fetched from server:", quotes);
+    showRandomQuote();
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 // Function to post data to the server using a mock API
@@ -34,7 +38,7 @@ setInterval(syncQuotes, 15000);
 // Function to resolve conflicts by updating local storage with server data
 function resolveConflicts() {
   // Simple conflict resolution: Server data takes precedence
-  quotes = mockServerData.slice(); // Update local data with server data
+  quotes = quotes.slice(); // Update local data with server data
   console.log("Conflicts resolved with server data.");
   showRandomQuote();
 }
