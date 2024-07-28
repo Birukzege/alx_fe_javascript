@@ -13,6 +13,7 @@ async function fetchQuotesFromServer() {
     console.log("Data fetched from server:", quotes);
     showRandomQuote();
     updateLocalStorage(); // Update local storage with server data
+    alert("Quotes synced with server!");
   } catch (error) {
     console.error(error);
   }
@@ -79,7 +80,10 @@ function showRandomQuote() {
   quoteDisplay.innerHTML = `<p><strong>${randomQuote.text}</strong> - ${randomQuote.category}</p>`;
 }
 
-// UI elements or notifications for data updates or conflicts can be added based on project requirements
+// UI elements or notifications for data updates or conflicts
+function displayNotification(message) {
+  alert(message);
+}
 
 // Event listeners
 document.getElementById('newQuote').addEventListener('click', showRandomQuote);
