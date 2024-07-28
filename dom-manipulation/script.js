@@ -18,9 +18,24 @@ async function fetchQuotesFromServer() {
 }
 
 // Function to post data to the server using a mock API
-function postToServer(data) {
-  // Simulate posting data to the server
-  console.log("Data posted to server:", data);
+async function postToServer(data) {
+  try {
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to post data to the server');
+    }
+
+    console.log("Data posted to server:", data);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 // Function to sync data with the server
