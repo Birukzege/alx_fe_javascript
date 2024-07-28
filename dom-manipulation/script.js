@@ -12,6 +12,7 @@ async function fetchQuotesFromServer() {
     quotes = data.map(item => ({ text: item.title, category: "Mock Category" }));
     console.log("Data fetched from server:", quotes);
     showRandomQuote();
+    updateLocalStorage(); // Update local storage with server data
   } catch (error) {
     console.error(error);
   }
@@ -56,6 +57,12 @@ function resolveConflicts() {
   quotes = quotes.slice(); // Update local data with server data
   console.log("Conflicts resolved with server data.");
   showRandomQuote();
+  updateLocalStorage(); // Update local storage with resolved data
+}
+
+// Function to update local storage with quotes data
+function updateLocalStorage() {
+  localStorage.setItem('quotes', JSON.stringify(quotes));
 }
 
 // Function to display a random quote
