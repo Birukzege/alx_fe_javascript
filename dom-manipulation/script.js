@@ -18,7 +18,7 @@ function loadQuotes() {
   } else {
     // Default quotes if none found in local storage
     quotes = [
-      { text: "The only way to do great work is to love what you do.", category: "Inspiration" },
+      { text: "The onlyway to do great work is to love what you do.", category: "Inspiration" },
       { text: "Life is what happens when you're busy making other plans.", category: "Life" },
       { text: "Be the change that you wish to see in the world.", category: "Change" },
     ];
@@ -62,7 +62,7 @@ function createAddQuoteForm() {
 
 // Function to add a new quote
 function addQuote() {
-  const newQuoteText = document.getElementById('newQuoteText').value;
+  const newQuoteText =document.getElementById('newQuoteText').value;
   const newQuoteCategory = document.getElementById('newQuoteCategory').value;
 
   // Add new quote object to the quotes array
