@@ -174,49 +174,47 @@ function rememberFilter() {
 }
 
 // Function to restore the last selected
-// filter on page load
+// Function to populate categories dynamically
+function populateCategories() {
+  const categoryFilter = document.getElementById('categoryFilter');
+  const uniqueCategories = new Set(quotes.map(quote => quote.category));
+
+  // Add "All Categories" option
+  const allOption = document.createElement('option');
+  allOption.value = 'all';
+  allOption.textContent = 'All Categories'; // Use textContent here
+  categoryFilter.appendChild(allOption);
+
+  // Add unique categories to the dropdown
+  uniqueCategories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category; // Use textContent here
+    categoryFilter.appendChild(option);
+  });
+}
+
+// Function to filter quotes based on selected category
+function filterQuotes() {
+  const selectedCategory = document.getElementById('categoryFilter').value;
+  const filteredQuotes = selectedCategory === 'all' ? 
+    quotes : 
+    quotes.filter(quote => quote.category === selectedCategory);
+
+  // Update the quote display with filtered quotes
+  updateQuoteDisplay(filteredQuotes);
+}
+
+// Function to remember the last selected filter
+function rememberFilter() {
+  const selectedCategory = document.getElementById('categoryFilter').value;
+  localStorage.setItem('lastFilter', selectedCategory);
+}
+
+// Function to restore the last selected filter on page load
 function restoreFilter() {
   const lastFilter = localStorage.getItem('lastFilter');
   if (lastFilter) {
     document.getElementById('categoryFilter').value = lastFilter;
   }
-}
-
-// ... (Other code)
-
-// Populate categories on page load
-window.onload = () => {
-  // ...
-  populateCategories(); 
-  restoreFilter(); // Restore filter from local storage
-  showRandomQuote();
-  createAddQuoteForm();
-  createImportExportButtons();
-  // ...
-};
-
-// Function to add a new quote (update to include category management)
-function addQuote() {
-  // ...
-  // Add new quote object to the quotes array
-  quotes.push({ text: newQuoteText, category: newQuoteCategory });
-  
-  // ...
-  saveQuotes();
-  populateCategories(); // Update categories after adding a new quote
-  filterQuotes(); // Filter quotes based on current filter
-}
-
-// Function to save quotes (update to include filter data)
-function saveQuotes() {
-  localStorage.setItem('quotes', JSON.stringify(quotes));
-  rememberFilter(); // Save the current filter to local storage
-}
-
-// Function to show a random quote (update to display filtered quotes)
-function showRandomQuote() {
-  const filteredQuotes = document.getElementById('categoryFilter').value === 'all' ? 
-    quotes : 
-    quotes.filter(quote => quote.category === document.getElementById('categoryFilter').value);
-  updateQuoteDisplay(filteredQuotes);
 }
