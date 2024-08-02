@@ -14,6 +14,12 @@ html
  <!-- Add buttons and file input -->
  <button id="exportQuotes">Export Quotes</button>
  <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
-<script src="script.js"></script>
+
+  <!-- Add Category Filter -->
+  <select id="categoryFilter" onchange="filterQuotes()">
+    <option value="all">All Categories</option>
+  </select>
+
+ <script src="script.js"></script>
 </body>
 </html>
