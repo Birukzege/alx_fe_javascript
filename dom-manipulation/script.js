@@ -1,89 +1,251 @@
-let quotes = []; // Array to store quotes
+let quotes = [];
+const apiEndpoint = 'https://jsonplaceholder.typicode.com/posts';
+let lastFetchTime = Date.now(); // Keep track of the last fetch time
 
-// Function to fetch quotes from the server using a mock API
+// Function to fetch quotes from the mock API
+async function fetchJson(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch data:', error);
+    return []; // Return an empty array if there's an error
+  }
+}
+
+// Function to fetch and sync quotes from the server
 async function fetchQuotesFromServer() {
   try {
-    const response = await fetch('https://jsonplaceholder.typicode.com/posts');
-    if (!response.ok) {
-      throw new Error('Failed to fetch data from the server');
-    }
-
-    const data = await response.json();
-    quotes = data.map(item => ({ text: item.title, category: "Mock Category" }));
-    console.log("Data fetched from server:", quotes);
-    showRandomQuote();
-    updateLocalStorage(); // Update local storage with server data
-    alert("Quotes synced with server!");
+    const serverQuotes = await fetchJson(apiEndpoint);
+    quotes = serverQuotes;
+    saveQuotes();
+    filterQuotes('all'); // Update UI with the fetched data
+    alert('Quotes synced with server!');
   } catch (error) {
-    console.error(error);
+    console.error('Failed to fetch quotes:', error);
+    alert('Failed to fetch quotes from the server. Using local storage data.');
   }
 }
 
-// Function to post data to the server using a mock API
-async function postToServer(data) {
-  try {
-    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to post data to the server');
+// Function to start the periodic sync with the server
+function startPeriodicSync() {
+  setInterval(() => {
+    if (Date.now() - lastFetchTime > 300000) { // Fetch new data every 5 minutes
+      lastFetchTime = Date.now();
+      checkForConflicts(); // Check for conflicts before fetching quotes
     }
-
-    console.log("Data posted to server:", data);
-  } catch (error) {
-    console.error(error);
-  }
+  }, 60000); // Check if it's time to sync every minute
 }
 
-// Function to sync data with the server
-function syncQuotes() {
-  fetchQuotesFromServer(); // Fetch new quotes from the server
-  
-  // Check for conflicts and resolve them
-  // For simplicity, we will assume server data takes precedence
-  resolveConflicts();
-}
-
-// Periodically check for new quotes from the server (every 15 seconds)
-setInterval(syncQuotes, 15000);
-
-// Function to resolve conflicts by updating local storage with server data
-function resolveConflicts() {
-  // Simple conflict resolution: Server data takes precedence
-  quotes = quotes.slice(); // Update local data with server data
-  console.log("Conflicts resolved with server data.");
-  showRandomQuote();
-  updateLocalStorage(); // Update local storage with resolved data
-}
-
-// Function to update local storage with quotes data
-function updateLocalStorage() {
+// Function to save quotes to local storage
+function saveQuotes() {
   localStorage.setItem('quotes', JSON.stringify(quotes));
 }
 
-// Function to display a random quote
-function showRandomQuote() {
-  if (quotes.length === 0) {
-    document.getElementById('quoteDisplay').innerText = "No quotes available.";
+// Function to load quotes from local storage
+function loadQuotes() {
+  const savedQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  if (savedQuotes) {
+    quotes = savedQuotes;
+  } else {
+    fetchJson(apiEndpoint)
+      .then(quotes => {
+        quotes = quotes;
+        saveQuotes();
+        filterQuotes('all'); // Update UI with the fetched data
+      })
+      .catch(error => {
+        console.error('Failed to fetch quotes:', error);
+        alert('Failed to fetch quotes from the server. Using mock data.');
+    });
+  }
+}
+
+// Function to populate the category filter
+function populateCategories() {
+  const uniqueCategories = new Set();
+  quotes.forEach((quote) => {
+    uniqueCategories.add(quote.category);
+  });
+
+  const categoryFilter = document.getElementById('categoryFilter');
+  uniqueCategories.forEach((category) => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    categoryFilter.appendChild(option);
+  });
+}
+
+// Function to filter quotes based on the selected category
+function filterQuotes(category = 'all') {
+  // Clear any existing filters
+  const activeFilters = document.querySelectorAll('.category-filter.active');
+  activeFilters.forEach((filter) => {
+    filter.classList.remove('active');
+  });
+
+  // Map the quotes to create filtered HTML elements
+  const filteredQuotes = quotes.map((quote) => {
+    if (category === 'all' || quote.category === category) {
+      return `<div class="category-filter ${category === 'all' ? 'active' : ''}" data-category="${category}" data-id=${category === 'all' ? 'all' : quote.id}>
+                  <p>${quote.content}</p><span>- ${quote.category}</span>
+                </div>`;
+    }
+    return ''; // Return an empty string if the quote doesn't match the filter
+  }).filter(Boolean).join(''); // Remove empty strings and join the filtered HTML
+
+  // Clear the current quote container
+  const quoteContainer = document.getElementById('quotes-container');
+  quoteContainer.innerHTML = '';
+
+  // Update the UI with the filtered quotes
+  quoteContainer.innerHTML = filteredQuotes;
+}
+
+// Function to initialize the category filter
+function initializeCategoryFilter() {
+  // Populate the category filter
+  populateCategories();
+
+  // Load the last selected category from local storage or default to 'all'
+  const lastSelectedCategory = localStorage.getItem('lastSelectedCategory') || 'all';
+  filterQuotes(lastSelectedCategory);
+}
+
+// Event listener for adding new quotes
+document.getElementById('submit-button').addEventListener('click', async function(e) {
+  e.preventDefault();
+  const contentInput = document.getElementById('newQuoteText');
+  const authorInput = document.getElementById('newQuoteCategory');
+
+  // Validate inputs
+  if (!contentInput.value || !authorInput.value) {
+    alert('Please fill in all fields.');
     return;
   }
 
+  // Add the new quote to the quotes array
+  const newQuote = {
+    id: quotes.length + 1,
+    content: contentInput.value,
+    category: authorInput.value
+  };
+  quotes.push(newQuote);
+  saveQuotes(); // Save the new quote to local storage
+
+  // Optionally, send the new quote to the server
+  fetchJson(`${apiEndpoint}/${quotes.length}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newQuote)
+  })
+    .then(() => {
+      console.log('Quote added to server');
+    })
+    .catch(error => {
+      console.error('Failed to add quote to server:', error);
+      alert('Failed to add quote to the server. The quote has been saved locally.');
+    });
+
+  // Update the UI with the new quote
+  const newQuoteElement = document.createElement('div');
+  newQuoteElement.classList.add('category-filter');
+  newQuoteElement.innerHTML = `<p>${newQuote.content}</p><span>- ${newQuote.category}</span>`;
+  document.getElementById('quotes-container').appendChild(newQuoteElement);
+});
+
+// Event listener for the "Show New Quote" button
+document.getElementById('newQuote').addEventListener('click', () => {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const randomQuote = quotes[randomIndex];
-  
-  const quoteDisplay = document.getElementById('quoteDisplay');
-  quoteDisplay.innerHTML = `<p><strong>${randomQuote.text}</strong> - ${randomQuote.category}</p>`;
+  showQuote(randomQuote);
+});
+
+// Event listener for the category filter
+document.getElementById('categoryFilter').addEventListener('change', (e) => {
+  const selectedCategory = e.target.value;
+  filterQuotes(selectedCategory);
+});
+
+// Event listener for the "Import Quotes" button
+document.getElementById('importFile').addEventListener('change', (event) => {
+  const fileReader = new FileReader();
+  fileReader.onload = function() {
+    const importedQuotes = JSON.parse(this.result);
+    quotes.push(...importedQuotes);
+    saveQuotes();
+    filterQuotes('all'); // Update UI with the imported quotes
+    alert('Quotes imported successfully!');
+  };
+  fileReader.readAsText(event.target.files[0]);
+});
+
+// Function to show a random quote
+function showQuote(randomQuote) {
+  const quoteElement = document.createElement('div');
+  quoteElement.classList.add('category-filter');
+  quoteElement.innerHTML = `<p>${randomQuote.content}</p><span>- ${randomQuote.category}</span>`;
+  document.getElementById('quotes-container').appendChild(quoteElement);
 }
 
-// UI elements or notifications for data updates or conflicts
-function displayNotification(message) {
-  alert(message);
+// Function to sync quotes with the server
+async function syncQuotes() {
+  try {
+    const serverData = await fetchJson(apiEndpoint);
+    quotes = serverData;
+    saveQuotes();
+    filterQuotes('all'); // Update UI with the fetched data
+    alert('Quotes synced with server!');
+  } catch (error) {
+    console.error('Failed to sync data with server:', error);
+    alert('Failed to sync data with the server. Using local storage data.');
+  }
 }
 
-// Event listeners
-document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+// Event listener for the "Sync with Server" button
+document.getElementById('syncButton').addEventListener('click', async () => {
+  try {
+    await syncQuotes();
+  } catch (error) {
+    console.error('Failed to sync data with server:', error);
+    alert('Failed to sync data with the server. Using local storage data.');
+  }
+});
+
+// Function to check for data updates or conflicts
+async function checkForConflicts() {
+  try {
+    const serverQuotes = await fetchJson(apiEndpoint);
+    const localQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+
+    if (JSON.stringify(serverQuotes) !== JSON.stringify(localQuotes)) {
+      await syncQuotes();
+    }
+  } catch (error) {
+    console.error('Failed to check for conflicts:', error);
+    alert('Failed to check for data conflicts with the server.');
+  }
+}
+
+// Add the check for data conflicts to the startPeriodicSync function
+function startPeriodicSync() {
+  setInterval(() => {
+    if (Date.now() - lastFetchTime > 300000) { // Fetch new data every 5 minutes
+      lastFetchTime = Date.now();
+      checkForConflicts(); // Check for conflicts before fetching quotes
+    }
+  }, 60000); // Check if it's time to sync every minute
+}
+
+// Add the "Sync with Server" button to the UI
+syncQuotes();
+// Initialize the UI with the saved quotes and start the periodic sync
+loadQuotes();
+startPeriodicSync();
