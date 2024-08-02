@@ -256,4 +256,18 @@ function displayQuotes() {
   // ... (Logic to display the quotes in your UI)
 }
 
+// Function to sync quotes from the server (syncQuotes)
+async function syncQuotes() {
+  let localQuotes = JSON.parse(localStorage.getItem('quotes')) || []; 
+  const serverQuotes = await fetchQuotesFromServer();
+
+  // ... (logic for updating local quotes)
+
+  localStorage.setItem('quotes', JSON.stringify(localQuotes)); // Save the updated local data
+
+  // Display a message to the user that the quotes are synced
+  console.log("Quotes synced with server!"); 
+}
+
+
 displayQuotes(); // Call to display initially loaded quotes
