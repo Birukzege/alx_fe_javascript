@@ -24,7 +24,6 @@ async function fetchQuotesFromServer() {
     quotes = serverQuotes;
     saveQuotes();
     filterQuotes('all'); // Update UI with the fetched data
-    alert('Quotes synced with server!');
   } catch (error) {
     console.error('Failed to fetch quotes:', error);
     alert('Failed to fetch quotes from the server. Using local storage data.');
@@ -36,7 +35,7 @@ function startPeriodicSync() {
   setInterval(() => {
     if (Date.now() - lastFetchTime > 300000) { // Fetch new data every 5 minutes
       lastFetchTime = Date.now();
-      checkForConflicts(); // Check for conflicts before fetching quotes
+      fetchQuotesFromServer();
     }
   }, 60000); // Check if it's time to sync every minute
 }
@@ -68,8 +67,8 @@ function loadQuotes() {
 // Function to populate the category filter
 function populateCategories() {
   const uniqueCategories = new Set();
-  quotes.forEach((quote) => {
-    uniqueCategories.add(quote.category);
+  quotes.forEach(( quote) => {
+    uniqueCategories.add( quote.category);
   });
 
   const categoryFilter = document.getElementById('categoryFilter');
@@ -90,10 +89,10 @@ function filterQuotes(category = 'all') {
   });
 
   // Map the quotes to create filtered HTML elements
-  const filteredQuotes = quotes.map((quote) => {
+  const filteredQuotes = quotes.map(( quote) => {
     if (category === 'all' || quote.category === category) {
       return `<div class="category-filter ${category === 'all' ? 'active' : ''}" data-category="${category}" data-id=${category === 'all' ? 'all' : quote.id}>
-                  <p>${quote.content}</p><span>- ${quote.category}</span>
+                  <p>${ quote.content}</p><span>- ${ quote.category}</span>
                 </div>`;
     }
     return ''; // Return an empty string if the quote doesn't match the filter
@@ -171,7 +170,7 @@ document.getElementById('newQuote').addEventListener('click', () => {
 // Event listener for the category filter
 document.getElementById('categoryFilter').addEventListener('change', (e) => {
   const selectedCategory = e.target.value;
-  filterQuotes(selectedCategory);
+  filterQuotes(selectededCategory);
 });
 
 // Event listener for the "Import Quotes" button
@@ -195,17 +194,75 @@ function showQuote(randomQuote) {
   document.getElementById('quotes-container').appendChild(quoteElement);
 }
 
+// Initialize the UI with the saved quotes and start the periodic sync
+loadQuotes();
+startPeriodicSync();
+
 // Function to sync quotes with the server
-async function syncQuotes() {
+function syncQuotes() {
+  const syncButtonEl = document.createElement('button');
+  syncButtonEl.textContent = 'Sync with Server';
+  syncButtonEl.id = 'syncButton';
+  syncButtonEl.addEventListener('click', async () => {
+    try {
+      const serverData = await fetchJson(apiEndpoint);
+      quotes = serverData;
+      saveQuotes();
+      filterQuotes('all'); // Update UI with the fetched data
+    } catch (error) {
+      console.error('Failed to sync data with server:', error);
+      alert('Failed to sync data with the server. Using local storage data.');
+    }
+  });
+  document.body.appendChild(syncButtonEl);
+}
+
+// Event listener for the "Sync with Server" button
+document.getElementById('syncButton').addEventListener('click', async () => {
   try {
     const serverData = await fetchJson(apiEndpoint);
     quotes = serverData;
     saveQuotes();
     filterQuotes('all'); // Update UI with the fetched data
-    alert('Quotes synced with server!');
   } catch (error) {
     console.error('Failed to sync data with server:', error);
     alert('Failed to sync data with the server. Using local storage data.');
+  }
+});
+
+// Add the "Sync with Server" button to the UI
+syncQuotes();
+// Initialize the UI with the saved quotes and start the periodic sync
+loadQuotes();
+startPeriodicSync();
+
+// Function to sync quotes with the server
+async function syncQuotes() {
+  try {
+    const serverData = await fetchJson(apiEndpoint);
+    const uiNotification = document.createElement('div');
+    uiNotification.classList.add('notification');
+    uiNotification.textContent = 'Quotes synced with server!';
+    uiNotification.style.display = 'block';
+    document.body.appendChild(uiNotification);
+    setTimeout(() => {
+      uiNotification.style.display = 'none';
+    }, 3000); // Display the notification for 3 seconds
+
+    quotes = serverData;
+    saveQuotes();
+    filterQuotes('all'); // Update UI with the fetched data
+  } catch (error) {
+    console.error('Failed to sync data with server:', error);
+    const errorNotification = document.createElement('div');
+    errorNotification.classList.add('notification');
+    errorNotification.textContent = 'Failed to sync data with server.';
+    errorNotification.style.display = 'block';
+    errorNotification.style.backgroundColor = '#fcc';
+    document.body.appendChild(errorNotification);
+    setTimeout(() => {
+      errorNotification.style.display = 'none';
+    }, 3000); // Display the error notification for 3 seconds
   }
 }
 
@@ -226,6 +283,14 @@ async function checkForConflicts() {
     const localQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
 
     if (JSON.stringify(serverQuotes) !== JSON.stringify(localQuotes)) {
+      const uiNotification = document.createElement('div');
+      uiNotification.classList.add('notification');
+      uiNotification.textContent = 'Data conflict detected. Syncing with server.';
+      uiNotification.style.display = 'block';
+      document.body.appendChild(uiNotification);
+      setTimeout(() => {
+        uiNotification.style.display = 'none';
+      }, 3000); // Display the notification for 3 seconds
       await syncQuotes();
     }
   } catch (error) {
@@ -243,9 +308,3 @@ function startPeriodicSync() {
     }
   }, 60000); // Check if it's time to sync every minute
 }
-
-// Add the "Sync with Server" button to the UI
-syncQuotes();
-// Initialize the UI with the saved quotes and start the periodic sync
-loadQuotes();
-startPeriodicSync();
